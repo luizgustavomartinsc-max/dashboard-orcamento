@@ -70,7 +70,7 @@ button:focus-visible,a:focus-visible,tr:focus-visible,input:focus-visible,select
  <div class="f"><label>Empresa</label><div class="chips" id="emp"></div></div>
  <div class="f"><label>Categoria</label><select id="tipo"></select></div>
  <div class="f"><label>Realizado até</label><select id="cut"></select></div>
- <div class="f"><label>Atualizar dados</label><div class="chips"><button class="chip on" id="up">Carregar orçamento (.xlsx)</button><button class="chip on" id="upf">Carregar forecast (.xlsx)</button><button class="chip on" id="upx">Carregar realizado expandido (.xlsx)</button><a class="chip" href="#exp">Ver realizado expandido ↓</a><button class="chip" id="save" hidden>Salvar para todos</button></div><input type="file" id="file" accept=".xlsx,.xls" hidden><input type="file" id="filef" accept=".xlsx,.xls" hidden><input type="file" id="filed" accept=".xlsx,.xls" multiple hidden></div>
+ <div class="f"><label>Atualizar dados</label><div class="chips"><button class="chip on" id="up">Carregar orçamento (.xlsx)</button><button class="chip on" id="upf">Carregar forecast (.xlsx)</button><button class="chip on" data-xe="CEA EQTL">Realizado expandido · CEA EQTL (.xlsx)</button><button class="chip on" data-xe="CSA">Realizado expandido · CSA (.xlsx)</button><button class="chip on" data-xe="EQTL PA">Realizado expandido · EQTL PA (.xlsx)</button><a class="chip" href="#exp">Ver realizado expandido ↓</a><button class="chip" id="save" hidden>Salvar para todos</button></div><input type="file" id="file" accept=".xlsx,.xls" hidden><input type="file" id="filef" accept=".xlsx,.xls" hidden><input type="file" id="filed" accept=".xlsx,.xls" hidden></div>
  <div class="note" id="src" style="flex-basis:100%"></div>
 </div>
 
@@ -97,7 +97,7 @@ button:focus-visible,a:focus-visible,tr:focus-visible,input:focus-visible,select
  <div class="f"><label>Gráfico por</label><span class="seg" id="dgrp"><button data-m="cls" class="on">Classe de custo</button><button data-m="forn">Fornecedor</button></span></div>
  <div class="f xsearch"><label for="dq">Buscar nos lançamentos</label><input id="dq" type="search" placeholder="Fornecedor, descrição ou documento"></div>
 </div>
-<div class="card note" id="xempty" hidden>Nenhuma planilha de realizado expandido carregada. Use "Carregar realizado expandido" na barra de filtros (aceita as 3 planilhas de uma vez).</div>
+<div class="card note" id="xempty" hidden>Nenhuma planilha de realizado expandido carregada. Use os botões "Realizado expandido" de cada empresa na barra de filtros (uma planilha por empresa).</div>
 <div id="xmain">
  <div class="kpis" id="xk"></div>
  <div class="grid">
@@ -397,18 +397,20 @@ function renderExp(){
  el('xlt').innerHTML='Lançamentos'+(S.dcls?` <button class="chip on" id="xclr">Classe: ${esc(cname(S.dcls))} ✕</button>`:'');
 }
 // leitura das exportações do SAP
-function parseDet(buf,name){
+function parseDet(buf,name,forced){
  const wb=XLSX.read(buf,{type:'array'}),js=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
  if(!js.length)throw new Error('planilha vazia.');
  const keys=Object.keys(js[0]),find=re=>keys.find(k=>re.test(nm(k)));
  const K={emp:find(/^empresa$/),cls:find(/^classe de custo$/),dt:find(/^data de lancamento$/),val:find(/^valor\/moeda objeto$/),cn:find(/^denom\.classe custo$/),cl:find(/^descr\.classe custo$/),fo:find(/^nome fornecedor$/),de:find(/^denominacao$/),pe:find(/^texto do pedido$/),dc:find(/^n.{1,2}documento$/)};
  if(!K.emp||!K.cls||!K.dt||!K.val)throw new Error('faltam as colunas Empresa, Classe de custo, Data de lançamento e Valor/moeda objeto. Confira se é a exportação do realizado expandido.');
- const n=nm(name),hint=/(^|[^a-z])csa([^a-z]|$)/.test(n)?'CSA':/(^|[^a-z])pa([^a-z]|$)/.test(n)?'EQTL PA':/cea/.test(n)?'CEA EQTL':null;
  const tx=v=>v==null?'':String(v).replace(/\s+/g,' ').trim(),by={},yc={},recs=[];
+ const want=Object.keys(EMPKEY).find(c=>EMPKEY[c]===forced),codes=[...new Set(js.map(o=>tx(o[K.emp])).filter(Boolean))];
+ const other=codes.find(c=>EMPKEY[c]&&c!==want);
+ if(other)throw new Error('esta planilha é de '+EMPKEY[other]+' (código '+other+'), não de '+forced+'. Use o botão de '+EMPKEY[other]+'.');
+ if(codes.length>1)throw new Error('a planilha tem mais de uma empresa ('+codes.join(', ')+'). Carregue uma planilha por empresa.');
  for(const o of js){
-  const code=tx(o[K.emp]),emp=EMPKEY[code]||hint,c=tx(o[K.cls]),v=+o[K.val];let dt=o[K.dt];
+  const emp=forced,c=tx(o[K.cls]),v=+o[K.val];let dt=o[K.dt];
   if(!c||!isFinite(v)||dt==null||dt==='')continue;
-  if(!emp)throw new Error('não reconheci a distribuidora (código de empresa "'+code+'"). Esperado D006 (CEA), E141 (PA) ou SA01 (CSA).');
   let y,m,d;
   if(typeof dt==='number'){const x=new Date(Math.round((Math.floor(dt)-25569)*86400000));y=x.getUTCFullYear();m=x.getUTCMonth()+1;d=x.getUTCDate()}
   else{const s=tx(dt),a=s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/),b=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -441,20 +443,17 @@ async function loadDet(emp,key,d){
   setDet(emp,{rows,cls:JSON.parse(d.cls),forn:JSON.parse(d.forn)},{fileName:d.fileName,updatedAt:d.updatedAt});
  }catch(e){}
 }
-async function loadDetFiles(fs){
- const ok=[],bad=[];
- for(const f of fs){
-  try{
-   const r=parseDet(await f.arrayBuffer(),f.name);
-   for(const x of r.out){setDet(x.emp,x.data,{local:true,fileName:f.name});ok.push(`${x.emp} (${x.data.rows.length} lançamentos)`)}
-   if(r.skipped)bad.push(`${f.name}: ${r.skipped} linha(s) de outro ano ignoradas`);
-  }catch(err){bad.push(`${f.name}: ${err.message}`)}
- }
- S.msg=(ok.length?'Realizado expandido carregado: '+ok.join(', ')+'.':'')+(bad.length?' Avisos: '+bad.join(' | '):'');
- status();
+async function loadDetFile(f,emp){
+ let msg;
+ try{
+  const r=parseDet(await f.arrayBuffer(),f.name,emp),x=r.out[0];
+  setDet(emp,x.data,{local:true,fileName:f.name});
+  msg=`Realizado expandido de ${emp} carregado: ${x.data.rows.length} lançamentos, o último em ${fd(lastDate(emp))}.`+(r.skipped?` ${r.skipped} linha(s) de outro ano ignoradas.`:'');
+ }catch(err){msg=`Não carreguei o realizado expandido de ${emp} (${f.name}): ${err.message}`}
+ S.msg=msg;status();
 }
-el('upx').onclick=()=>el('filed').click();
-el('filed').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)loadDetFiles(fs)};
+document.querySelectorAll('[data-xe]').forEach(b=>b.onclick=()=>{S.xe=b.dataset.xe;el('filed').click()});
+el('filed').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f&&S.xe)loadDetFile(f,S.xe)};
 seg('dgrp','dgrp');
 el('xcats').onclick=e=>{const b=e.target.closest('[data-c]');if(b)selCat(b.dataset.c)};
 el('dper').onchange=e=>{S.dper=e.target.value;S.dlim=50;render()};
