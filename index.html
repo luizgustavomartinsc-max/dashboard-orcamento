@@ -153,7 +153,7 @@ function render(){
    k('Saldo (O − R)',R(o-re),o-re>=0?'abaixo do orçado':'acima do orçado',o-re>=0?'pos':'neg')+
    k('Execução',P(re,o),'realizado ÷ orçado',re>o?'neg':re>=o*.9?'warn':'pos'))+
   kgp('Anual','janeiro a dezembro',
-   k('Orçado do ano',R(oy),'jan–dez')+k('Projeção do ano',R(proj),(proj>oy?'+':'')+R(proj-oy)+' vs orçado',proj>oy?'neg':'pos'))+
+   k('Orçado do ano',R(oy),'jan–dez')+k('Realizado no ano',R(re),'efetivamente realizado até '+MES[cut-1]))+
   kgp('Forecast','planilha de forecast, ano inteiro',
    k('Forecast orçado',R(fo),'jan–dez · planilha de forecast')+k('Forecast realizado',R(fr),P(fr,fo)+' do forecast orçado')+k('Saldo do forecast',R(fo-fr),fo-fr>=0?'abaixo do forecast orçado':'acima do forecast orçado',fo-fr>=0?'pos':'neg'));
  // mensal
