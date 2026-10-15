@@ -29,6 +29,7 @@ select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-
 .hero .two>div{padding:7px 6px;text-align:center}.hero .two>div+div{border-left:1px solid var(--bd)}
 .hero .two .l{font-size:10px;font-weight:600;color:var(--ac)}
 .hero .two .v{font-size:clamp(16px,4vw,19px);font-weight:800;margin-top:2px}
+.kg{margin-bottom:16px}.kgt{font-size:13px;font-weight:700;color:var(--ac);margin:0 0 8px;padding-left:8px;border-left:3px solid var(--bl)}.kgt span{font-weight:400;color:var(--mu);margin-left:8px;font-size:12px}
 .k .v{font-size:21px;font-weight:700;margin-top:3px}.k .s{font-size:12px;color:var(--mu)}
 .pos{color:var(--gn)}.neg{color:var(--rd)}.warn{color:var(--am)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;margin-top:12px}
@@ -82,7 +83,7 @@ button:focus-visible,a:focus-visible,tr:focus-visible,input:focus-visible,select
  <div class="note" id="src" style="flex-basis:100%"></div>
 </div>
 
-<div class="kpis" id="kpis"></div><div class="card hero" id="hero"></div>
+<div id="kpis"></div><div class="kgt" style="margin-top:4px">Consumo do orçado anual<span>realizado até o mês de corte sobre o orçado de janeiro a dezembro</span></div><div class="card hero" id="hero"></div>
 
 <div class="grid">
  <div class="card" style="grid-column:1/-1"><h2>Orçado × Realizado por mês
@@ -144,13 +145,17 @@ function render(){
  {const sd=oy-re,pc=oy?re/oy*100:0,pd=oy?sd/oy*100:0,f=x=>x.toFixed(2).replace('.',',')+'%',g=sd>=0;
   const RM=n=>{const a=Math.abs(n),sg=n<0?'-':'',t=x=>x.toFixed(2).replace('.',',');return a>=1e6?sg+'R$ '+t(a/1e6)+' Mi':a>=1e3?sg+'R$ '+t(a/1e3)+' Mil':sg+'R$ '+Math.round(a)};
   const p=Math.min(1,Math.max(0,oy?re/oy:0)),th=Math.PI*(1-p),x1=100+66*Math.cos(th),y1=100-66*Math.sin(th),x2=100+94*Math.cos(th),y2=100-94*Math.sin(th);
-  document.getElementById('hero').innerHTML=`<div class="ttl">Consumo do orçado anual</div><svg viewBox="0 0 200 124" role="img" aria-label="${RM(re)} realizado de ${RM(oy)} orçado no ano (${f(pc)} consumido)"><path d="M20 100A80 80 0 0 1 180 100" pathLength="100" fill="none" stroke="var(--bd)" stroke-width="20"/><path d="M20 100A80 80 0 0 1 180 100" pathLength="100" fill="none" stroke="${g?'var(--bl)':'var(--rd)'}" stroke-width="20" stroke-dasharray="${(p*100).toFixed(2)} 100"/><line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--tx)" stroke-width="2"/><text class="gc" x="100" y="82" style="font-size:12px;font-weight:700;fill:var(--tx)">${RM(re)}</text><text class="gc" x="100" y="95" style="font-size:8px">realizado até ${MES[cut-1]} · ${f(pc)}</text><text class="gl" x="10" y="118" text-anchor="start">R$ 0</text><text class="gl" x="190" y="118" text-anchor="end">${RM(oy)}</text></svg><div class="two"><div><div class="l">Saldo disponível (R$)</div><div class="v" style="color:${g?'var(--bl)':'var(--rd)'}">${RM(sd)}</div></div><div><div class="l">Saldo disponível (%)</div><div class="v" style="color:${g?'var(--ac)':'var(--rd)'}">${oy?f(pd):'–'}</div></div></div>`}
+  document.getElementById('hero').innerHTML=`<svg viewBox="0 0 200 124" role="img" aria-label="${RM(re)} realizado de ${RM(oy)} orçado no ano (${f(pc)} consumido)"><path d="M20 100A80 80 0 0 1 180 100" pathLength="100" fill="none" stroke="var(--bd)" stroke-width="20"/><path d="M20 100A80 80 0 0 1 180 100" pathLength="100" fill="none" stroke="${g?'var(--bl)':'var(--rd)'}" stroke-width="20" stroke-dasharray="${(p*100).toFixed(2)} 100"/><line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--tx)" stroke-width="2"/><text class="gc" x="100" y="82" style="font-size:12px;font-weight:700;fill:var(--tx)">${RM(re)}</text><text class="gc" x="100" y="95" style="font-size:8px">realizado até ${MES[cut-1]} · ${f(pc)}</text><text class="gl" x="10" y="118" text-anchor="start">R$ 0</text><text class="gl" x="190" y="118" text-anchor="end">${RM(oy)}</text></svg><div class="two"><div><div class="l">Saldo disponível (R$)</div><div class="v" style="color:${g?'var(--bl)':'var(--rd)'}">${RM(sd)}</div></div><div><div class="l">Saldo disponível (%)</div><div class="v" style="color:${g?'var(--ac)':'var(--rd)'}">${oy?f(pd):'–'}</div></div></div>`}
+ const kgp=(t,sub,c)=>`<div class="kg"><div class="kgt">${t}<span>${sub}</span></div><div class="kpis">${c}</div></div>`;
  document.getElementById('kpis').innerHTML=
-  k('Orçado até '+MES[cut-1],R(o),'acumulado no período')+k('Realizado',R(re),'até '+MES[cut-1])+
-  k('Saldo (O − R)',R(o-re),o-re>=0?'abaixo do orçado':'acima do orçado',o-re>=0?'pos':'neg')+
-  k('Execução',P(re,o),'realizado ÷ orçado',re>o?'neg':re>=o*.9?'warn':'pos')+
-  k('Orçado do ano',R(oy),'jan–dez')+k('Projeção do ano',R(proj),(proj>oy?'+':'')+R(proj-oy)+' vs orçado',proj>oy?'neg':'pos')+
-  k('Forecast orçado',R(fo),'jan–dez · planilha de forecast')+k('Forecast realizado',R(fr),P(fr,fo)+' do forecast orçado')+k('Saldo do forecast',R(fo-fr),fo-fr>=0?'abaixo do forecast orçado':'acima do forecast orçado',fo-fr>=0?'pos':'neg');
+  kgp('Orçado × realizado até '+MES[cut-1],'acumulado de janeiro a '+MES[cut-1].toLowerCase(),
+   k('Orçado até '+MES[cut-1],R(o),'acumulado no período')+k('Realizado',R(re),'até '+MES[cut-1])+
+   k('Saldo (O − R)',R(o-re),o-re>=0?'abaixo do orçado':'acima do orçado',o-re>=0?'pos':'neg')+
+   k('Execução',P(re,o),'realizado ÷ orçado',re>o?'neg':re>=o*.9?'warn':'pos'))+
+  kgp('Anual','janeiro a dezembro',
+   k('Orçado do ano',R(oy),'jan–dez')+k('Projeção do ano',R(proj),(proj>oy?'+':'')+R(proj-oy)+' vs orçado',proj>oy?'neg':'pos'))+
+  kgp('Forecast','planilha de forecast, ano inteiro',
+   k('Forecast orçado',R(fo),'jan–dez · planilha de forecast')+k('Forecast realizado',R(fr),P(fr,fo)+' do forecast orçado')+k('Saldo do forecast',R(fo-fr),fo-fr>=0?'abaixo do forecast orçado':'acima do forecast orçado',fo-fr>=0?'pos':'neg'));
  // mensal
  const om=MES.map((_,i)=>sum(a.filter(r=>r[2]===i+1),r=>r[3])),rm=MES.map((_,i)=>i<cut?sum(a.filter(r=>r[2]===i+1),r=>r[4]):null);
  const acc=x=>{let s=0;return x.map(v=>v===null?null:(s+=v))};
